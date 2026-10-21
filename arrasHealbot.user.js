@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Arras.io Healbot
+// @name         Arras.io Healbot (Optimized)
 // @namespace    Violentmonkey Scripts
-// @version      1.2.0
-// @description  Spams healing in sandbox, Numpad1 toggles, Numpad2 is the menu.
+// @version      1.3.0
+// @description  Spams healing in sandbox, Numpad1 toggles, Numpad2 is the menu. Optimized for performance.
 // @match        *://arras.io/*
 // @run-at       document-start
 // @grant        none
@@ -11,7 +11,8 @@
 
 (function () {
     'use strict';
-    let configuracoes = {
+    
+    const configuracoes = {
         velocidadeSpam: 40,
         travarMiraNoCentro: true
     };
@@ -19,6 +20,7 @@
     let enabled = false;
     let loopCuraId = null;
 
+    // Elementos do DOM cacheados para evitar re-criação e buscas repetidas
     const painelConfig = document.createElement("div");
     painelConfig.id = "healbot-config-menu";
     Object.assign(painelConfig.style, {
@@ -32,7 +34,21 @@
 
     document.documentElement.appendChild(painelConfig);
 
+    // Eventos reutilizáveis (Otimização de Memória)
+    const evKeyDown = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, composed: true });
+    const evKeyUp = new KeyboardEvent("keyup", { bubbles: true, cancelable: true, composed: true });
+    evKeyDown.itsMe = true;
+    evKeyUp.itsMe = true;
+
+    const evMouse = new MouseEvent("mousemove", { bubbles: true, cancelable: true, composed: true });
+    const evPointer = new PointerEvent("pointermove", { bubbles: true, cancelable: true, composed: true });
+    evMouse.itsMe = true;
+    evPointer.itsMe = true;
+
     function renderizarMenu() {
+        // Renderiza apenas se o menu estiver vazio para evitar processamento desnecessário do DOM
+        if (painelConfig.innerHTML !== "") return;
+
         painelConfig.innerHTML = `
             <div style="font-weight: bold; border-bottom: 1px solid #6366f1; margin-bottom: 10px; color: #a5b4fc; font-size: 13px; letter-spacing: 0.5px;">Settings Menu</div>
             <div style="margin-bottom: 8px;">
@@ -46,6 +62,7 @@
             <button id="cfg-salvar" style="width: 100%; background: #6366f1; border: none; color: #fff; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;">Happy with these settings!</button>
             <div style="font-size: 9px; opacity: 0.4; margin-top: 10px; text-align: center;">Numpad 1: Toggle | Numpad 2: Menu</div>
         `;
+
         document.getElementById("cfg-salvar").onclick = () => {
             const novaVelocidade = parseInt(document.getElementById("cfg-speed").value, 10);
             if (!isNaN(novaVelocidade) && novaVelocidade >= 10) {
@@ -68,63 +85,54 @@
             }, 1000);
         };
     }
+
+    // Interceptador nativo otimizado com delegação direta
     const referencialNativoListener = EventTarget.prototype.addEventListener;
     EventTarget.prototype.addEventListener = function (type, callback, options) {
         if (type === "keydown" || type === "keyup" || type === "mousemove" || type === "pointermove") {
             const manipuladorOriginal = callback;
             callback = function (e) {
                 if (e && e.itsMe) {
-                    const evSimulado = {
-                        isTrusted: true,
-                        key: e.key,
-                        code: e.code,
-                        clientX: e.clientX,
-                        clientY: e.clientY,
-                        pageX: e.clientX,
-                        pageY: e.clientY,
-                        bubbles: e.bubbles !== false,
-                        cancelable: e.cancelable !== false,
-                        composed: e.composed !== false,
-                        preventDefault() { if (e.preventDefault) e.preventDefault(); },
-                        stopPropagation() { if (e.stopPropagation) e.stopPropagation(); }
-                    };
-                    return manipuladorOriginal.apply(this, [evSimulado]);
+                    // Evita criar um novo objeto literal a cada evento simulado disparado (reduz Garbage Collection)
+                    Object.defineProperties(e, {
+                        isTrusted: { value: true, configurable: true },
+                        pageX: { value: e.clientX, configurable: true },
+                        pageY: { value: e.clientY, configurable: true }
+                    });
                 }
-                return manipuladorOriginal.apply(this, [e]);
+                return manipuladorOriginal.call(this, e);
             };
         }
         return referencialNativoListener.call(this, type, callback, options);
     };
+
+    // Modificado para reutilizar instâncias globais de KeyboardEvent
     function dispararTecla(code, key, pressionado) {
-        const ev = new KeyboardEvent(pressionado ? "keydown" : "keyup", {
-            key: key, code: code, bubbles: true, cancelable: true, composed: true
+        const ev = pressionado ? evKeyDown : evKeyUp;
+        Object.defineProperties(ev, {
+            key: { value: key, configurable: true },
+            code: { value: code, configurable: true }
         });
-        ev.itsMe = true;
         window.dispatchEvent(ev);
     }
 
+    let canvasCache = null;
     function simularMiraNoCentro() {
         const meioX = window.innerWidth / 2;
         const meioY = window.innerHeight / 2;
 
-        const propriedadesPonteiro = {
-            clientX: meioX,
-            clientY: meioY,
-            bubbles: true,
-            cancelable: true,
-            composed: true
-        };
-        const evMouse = new MouseEvent("mousemove", propriedadesPonteiro);
-        const evPointer = new PointerEvent("pointermove", propriedadesPonteiro);
+        // Modifica propriedades dos eventos reutilizáveis em vez de instanciar novos
+        Object.defineProperties(evMouse, { clientX: { value: meioX }, clientY: { value: meioY } });
+        Object.defineProperties(evPointer, { clientX: { value: meioX }, clientY: { value: meioY } });
 
-        evMouse.itsMe = true;
-        evPointer.itsMe = true;
-        const elementoAlvo = document.querySelector("canvas") || document.body;
-        if (elementoAlvo) {
-            elementoAlvo.dispatchEvent(evMouse);
-            elementoAlvo.dispatchEvent(evPointer);
+        if (!canvasCache) canvasCache = document.querySelector("canvas") || document.body;
+        
+        if (canvasCache) {
+            canvasCache.dispatchEvent(evMouse);
+            canvasCache.dispatchEvent(evPointer);
         }
     }
+
     function executarCicloHealbot() {
         if (configuracoes.travarMiraNoCentro) {
             simularMiraNoCentro();
@@ -133,26 +141,30 @@
         dispararTecla("KeyH", "h", true);
         dispararTecla("KeyH", "h", false);
         dispararTecla("Backquote", "'", false);
-
     }
+
     referencialNativoListener.call(window, "keydown", (e) => {
-        const caixaTextoAberta = document.querySelector("body > input[type=text]");
-        if (caixaTextoAberta || e.itsMe) return;
+        if (e.itsMe) return;
+        
+        const caixaTextoAberta = document.activeElement && document.activeElement.tagName === "INPUT";
+        if (caixaTextoAberta) return;
+
         const ehNumpad1 = (e.code === "Numpad1") || (e.key === "1" && e.location === 3) || (e.code === "End" && e.location === 3);
         if (ehNumpad1) {
             e.preventDefault(); e.stopPropagation();
 
-            if (!enabled) {
-                enabled = true;
+            enabled = !enabled;
+            if (enabled) {
                 console.log("[Healbot] Enabled! WOO!!!");
                 executarCicloHealbot();
                 loopCuraId = setInterval(executarCicloHealbot, configuracoes.velocidadeSpam);
             } else {
-                enabled = false;
                 clearInterval(loopCuraId);
                 console.log("[Healbot] aw man disabled");
             }
+            return;
         }
+
         const ehNumpad2 = (e.code === "Numpad2") || (e.key === "2" && e.location === 3) || (e.code === "ArrowDown" && e.location === 3);
         if (ehNumpad2) {
             e.preventDefault(); e.stopPropagation();
