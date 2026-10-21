@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Arras.io Healbot
-// @namespace    http://tampermonkey.net
+// @namespace    Violentmonkey Scripts
 // @version      1.2.0
 // @description  Spams healing in sandbox, Numpad1 toggles, Numpad2 is the menu.
 // @match        *://arras.io/*
@@ -130,15 +130,10 @@
             simularMiraNoCentro();
         }
         dispararTecla("Backquote", "'", true);
-        setTimeout(() => {
-            dispararTecla("KeyH", "h", true);
-            setTimeout(() => {
-                dispararTecla("KeyH", "h", false);
-                setTimeout(() => {
-                    dispararTecla("Backquote", "'", false);
-                }, 4);
-            }, 4);
-        }, 4);
+        dispararTecla("KeyH", "h", true);
+        dispararTecla("KeyH", "h", false);
+        dispararTecla("Backquote", "'", false);
+
     }
     referencialNativoListener.call(window, "keydown", (e) => {
         const caixaTextoAberta = document.querySelector("body > input[type=text]");
