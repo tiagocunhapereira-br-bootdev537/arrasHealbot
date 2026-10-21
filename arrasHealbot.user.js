@@ -34,17 +34,17 @@
 
     function renderizarMenu() {
         painelConfig.innerHTML = `
-            <div style="font-weight: bold; border-bottom: 1px solid #6366f1; margin-bottom: 10px; color: #a5b4fc; font-size: 13px; letter-spacing: 0.5px;">🩹 HEALBOT SETTINGS</div>
+            <div style="font-weight: bold; border-bottom: 1px solid #6366f1; margin-bottom: 10px; color: #a5b4fc; font-size: 13px; letter-spacing: 0.5px;">Settings Menu</div>
             <div style="margin-bottom: 8px;">
-                <label style="display: block; opacity: 0.8; margin-bottom: 4px;">Velocidade de Spam (ms):</label>
-                <input type="number" id="cfg-speed" value="${configuracoes.velocidadeSpam}" min="10" max="500" style="width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 4px 8px; border-radius: 6px; outline: none;">
+                <label style="display: block; opacity: 0.8; margin-bottom: 4px;">Spammy spam speed (ms):</label>
+                <input type="number" id="cfg-speed" value="${configuracoes.velocidadeSpam}" min="10" max="500" style="width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 6px 10px; border-radius: 6px; outline: none; box-sizing: border-box; font-family: monospace;">
             </div>
             <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                 <input type="checkbox" id="cfg-center" ${configuracoes.travarMiraNoCentro ? "checked" : ""} style="accent-color: #6366f1; width: 14px; height: 14px; cursor: pointer;">
-                <label for="cfg-center" style="opacity: 0.8; cursor: pointer;">Travar Mira no Centro</label>
+                <label for="cfg-center" style="opacity: 0.8; cursor: pointer;">Lock Cursor In Middle</label>
             </div>
-            <button id="cfg-salvar" style="width: 100%; background: #6366f1; border: none; color: #fff; padding: 6px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;">Aplicar Ajustes</button>
-            <div style="font-size: 9px; opacity: 0.4; margin-top: 10px; text-align: center;">Numpad 1: Liga/Desliga | Numpad 2: Menu</div>
+            <button id="cfg-salvar" style="width: 100%; background: #6366f1; border: none; color: #fff; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;">Happy with these settings!</button>
+            <div style="font-size: 9px; opacity: 0.4; margin-top: 10px; text-align: center;">Numpad 1: Toggle | Numpad 2: Menu</div>
         `;
         document.getElementById("cfg-salvar").onclick = () => {
             const novaVelocidade = parseInt(document.getElementById("cfg-speed").value, 10);
@@ -64,7 +64,7 @@
             btn.textContent = "Reloaded!";
             setTimeout(() => {
                 btn.style.background = "#6366f1";
-                btn.textContent = "Apply Modifications";
+                btn.textContent = "Happy with these settings!";
             }, 1000);
         };
     }
